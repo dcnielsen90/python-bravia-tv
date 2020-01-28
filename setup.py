@@ -1,26 +1,22 @@
-# pylint: disable=invalid-name, exec-used
-"""Setup braviarc package."""
-from __future__ import absolute_import
-import sys
-import os
-from setuptools import setup, find_packages
-# import subprocess
-sys.path.insert(0, '.')
+import setuptools
 
-CURRENT_DIR = os.path.dirname(__file__)
+with open("README.md", "r") as fh:
+    long_description = fh.read()
 
-# to deploy to pip, please use
-# make pythonpack
-# python setup.py register sdist upload
-# and be sure to test it firstly using "python setup.py register sdist upload -r pypitest"
-setup(name='braviarc',
-      # version=open(os.path.join(CURRENT_DIR, 'xgboost/VERSION')).read().strip(),
-      version='0.3.7',
-      description=open(os.path.join(CURRENT_DIR, 'README.md')).read(),
-      install_requires=['requests'],
-      maintainer='Antonio Parraga',
-      maintainer_email='antonio@parraga.es',
-      zip_safe=False,
-      packages=find_packages(),
-      include_package_data=True,
-      url='https://github.com/aparraga/braviarc.git')
+setuptools.setup(
+    name="bravia_tv", # Replace with your own username
+    version="1.0.0",
+    maintainer="David Nielsen",
+    maintainer_email="dncielsen90@gmail.com",
+    description="Python Bravia TV remote control",
+    long_description=long_description,
+    long_description_content_type="text/markdown",
+    url="https://github.com/dcnielsen90/python-bravia-tv.git",
+    packages=setuptools.find_packages(),
+    classifiers=[
+        "Programming Language :: Python :: 3",
+        "License :: OSI Approved :: MIT License",
+        "Operating System :: OS Independent",
+    ],
+    python_requires='>=3.6',
+)

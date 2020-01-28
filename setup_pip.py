@@ -15,12 +15,12 @@ CURRENT_DIR = os.path.dirname(__file__)
 # and be sure to test it firstly using "python setup.py register sdist upload -r pypitest"
 setup(name='braviarc',
       # version=open(os.path.join(CURRENT_DIR, 'xgboost/VERSION')).read().strip(),
-      version='0.3.7',
+      version='1.0.0',
       description=open(os.path.join(CURRENT_DIR, 'README.md')).read(),
       install_requires=['requests'],
-      maintainer='Antonio Parraga',
-      maintainer_email='antonio@parraga.es',
+      maintainer='David Nielsen',
+      maintainer_email='dcnielsen90@gmail.com',
       zip_safe=False,
       packages=find_packages(),
       include_package_data=True,
-      url='https://github.com/aparraga/braviarc.git')
+      url='https://github.com/dcnielsen90/python-bravia-tv.git')

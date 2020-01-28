@@ -1,62 +1,70 @@
-# BraviaRC Python Package
+Python Bravia TV
+=====================
+
+Python Bravia TV is a Python library to perform remote communication via http  protocol with Sony Bravia TVs 2013 and newer: [list of tvs](http://info.tvsideview.sony.net/en_ww/home_device.html#bravia) 
+
+This library is a fork of [BraviaRC](https://github.com/aparraga/braviarc) and is primarily being developed with the intent of supporting [home-assistant](https://github.com/home-assistant/home-assistant)
 
 Installation
 ------------
 
--  ``pip3 install git+https://github.com/aparraga/braviarc.git``
+    # Installing from PyPI
+    $ pip install bravia_tv
+    # Installing latest development
+    $ pip install \
+        git+https://github.com/dcnielsen90/python-bravia-tv@master
 
-About
-=====
+Initializing and Connecting
+===========================
 
-``BraviaRC`` is a Python library for remote communication with Sony Bravia TVs 2013 and newer
-(http://info.tvsideview.sony.net/en_ww/home_device.html#bravia)
+    from bravia_tv import BraviaRC
 
-Requirements
-============
+    ip_address = '192.178.1.2'
+    mac_address = "XX:XX:XX:XX:XX:XX"
 
-Python 3.3 or 3.4 is required.
+    # IP address is required. mac address is required
+    # to turn on TV
+    braviarc = BraviaRC(ip_address, mac_address)
 
-Usage
-=====
 
-```python
+    # The pin can be a pre-shared key (PSK) or you can
+    # receive a pin from the tv by making the pin 0000
+    pin = '1878'
 
-#new instance for TV at 192.168.1.25
-braviarc = BraviaRC('192.168.1.25')
+    # Connect to TV
+    braviarc.connect(pin, 'my_device_id', 'my device name')
 
-#connect to the instance (or register)
-pin = '1878'
-braviarc.connect(pin, 'my_device_id', 'my device name')
+Command Examples
+================
 
-#check connection
-if braviarc.is_connected():
+    # Check connection
+    if braviarc.is_connected():
 
-  #get power status
-  power_status = braviarc.get_power_status()
-  print (power_status)
+        # Get power status
+        power_status = braviarc.get_power_status()
+        print (power_status)
 
-  #get playing info
-  playing_content = braviarc.get_playing_info()
+        # Get playing info
+        playing_content = braviarc.get_playing_info()
 
-  #print current playing channel
-  print (playing_content.get('title'))
+        # Print current playing channel
+        print (playing_content.get('title'))
 
-  #get volume info
-  volume_info = braviarc.get_volume_info()
+        # Get volume info
+        volume_info = braviarc.get_volume_info()
 
-  #print current volume
-  print (volume_info.get('volume'))
+        # Print current volume
+        print (volume_info.get('volume'))
 
-  #change channel
-  braviarc.play_content(uri)
+        # Change channel
+        braviarc.play_content(uri)
   
-  #get app list
-  app_info = braviarc.load_app_list()
-  print (app_info)
+        # Get app list
+        app_info = braviarc.load_app_list()
+        print (app_info)
   
-  #start a given app
-  braviarc.start_app("Netflix")
+        # Start a given app
+        braviarc.start_app("Netflix")
 
-  #turn off the TV
-  braviarc.turn_off()
-
+        # Turn off the TV
+        braviarc.turn_off()
