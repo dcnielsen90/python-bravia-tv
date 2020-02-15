@@ -386,6 +386,10 @@ class BraviaRC:
         """Send media pause command to media player."""
         self.send_req_ircc(self.get_command_code('Pause'))
 
+    def media_stop(self):
+        """Send media stop command to media player."""
+        self.send_req_ircc(self.get_command_code('Stop'))
+
     def media_next_track(self):
         """Send next track command."""
         self.send_req_ircc(self.get_command_code('Next'))
