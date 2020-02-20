@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="bravia_tv", # Replace with your own username
-    version="1.0.0",
+    version="1.0.1",
     maintainer="David Nielsen",
     maintainer_email="dncielsen90@gmail.com",
     description="Python Bravia TV remote control",
