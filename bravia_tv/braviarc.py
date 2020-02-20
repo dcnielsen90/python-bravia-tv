@@ -397,3 +397,8 @@ class BraviaRC:
     def media_previous_track(self):
         """Send the previous track command."""
         self.send_req_ircc(self.get_command_code('Prev'))
+
+    def get_system_info(self):
+        """Returns dictionary containing system information."""
+        payload = self._jdata_build("getSystemInformation", None)
+        return self.bravia_req_json('sony/system', payload)['result'][0]
