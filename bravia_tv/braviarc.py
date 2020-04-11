@@ -21,7 +21,7 @@ _LOGGER = logging.getLogger(__name__)
 
 class BraviaRC:
 
-    def __init__(self, host, mac=None):  # mac address is optional but necessary if we want to turn on the TV
+    def __init__(self, host, mac=None):
         """Initialize the Sony Bravia RC class."""
 
         self._host = host
@@ -30,6 +30,8 @@ class BraviaRC:
         self._commands = []
         self._content_mapping = {}
         self._app_list = {}
+        self._system_info = {}
+        self._uid = None
 
     def _jdata_build(self, method, params=None):
         if params:
@@ -39,61 +41,32 @@ class BraviaRC:
         return ret
 
     def connect(self, pin, clientid, nickname):
-        """Connect to TV and get authentication cookie.
+        """Connect to TV and get authentication cookie."""
+        self._cookies = None
 
-        Parameters
-        ---------
-        pin: str
-            Pin code show by TV (or 0000 to get Pin Code).
-        clientid: str
-            Client ID.
-        nickname: str
-            Client human friendly name.
-
-        Returns
-        -------
-        bool
-            True if connected.
-        """
         authorization = json.dumps(
-            {"method": "actRegister",
-             "params": [{"clientid": clientid,
-                         "nickname": nickname,
-                         "level": "private"},
-                        [{"value": "yes",
-                          "function": "WOL"}]],
-             "id": 1,
-             "version": "1.0"}
-        ).encode('utf-8')
+            {'method': 'actRegister',
+             'params': [{'clientid': clientid,
+                         'nickname': nickname,
+                         'level': 'private'},
+                        [{'value': 'yes',
+                          'function': 'WOL'}]],
+             'id': 1,
+             'version': '1.0'}
+        )
 
-        headers = {}
-        if pin:
-            username = ''
-            base64string = base64.encodebytes(('%s:%s' % (username, pin)).encode()) \
-                .decode().replace('\n', '')
-            headers['Authorization'] = "Basic %s" % base64string
-            headers['Connection'] = "keep-alive"
+        b64str = b64encode(f':{pin}'.encode()).decode()
 
-        try:
-            response = requests.post('http://'+self._host+'/sony/accessControl',
-                                     data=authorization, headers=headers, timeout=TIMEOUT)
-            response.raise_for_status()
+        headers={'Authorization':f'Basic {b64str}',
+                 'Connection':'keep-alive'}
 
-        except requests.exceptions.HTTPError as exception_instance:
-            _LOGGER.error("[W] HTTPError: " + str(exception_instance))
-            return False
+        resp = self.bravia_req_json('sony/accessControl', authorization, headers=headers)
 
-        except Exception as exception_instance:  # pylint: disable=broad-except
-            _LOGGER.error("[W] Exception: " + str(exception_instance))
-            return False
-
-        else:
-            resp = response.json()
-            _LOGGER.debug(json.dumps(resp, indent=4))
-            if resp is None or not resp.get('error'):
-                self._cookies = response.cookies
-                return True
-
+        if resp.get('error') is None:
+            self.get_system_info()
+            if not self.getWolMode():
+                self.setWolMode(True)
+            return True
         return False
 
     def is_connected(self):
@@ -143,13 +116,13 @@ class BraviaRC:
             content = response.content
             return content
 
-    def bravia_req_json(self, url, params, log_errors=True):
-        """ Send request command via HTTP json to Sony Bravia."""
-        cookies = self._recreate_auth_cookie()
+    def bravia_req_json(self, url, params, headers=None, log_errors=True):
+        """Send request command via HTTP json to Sony Bravia."""
         try:
             response = requests.post(f'http://{self._host}/{url}',
                                      data=params,
-                                     cookies=cookies,
+                                     headers=headers,
+                                     cookies=self._cookies,
                                      timeout=TIMEOUT)
         except requests.exceptions.HTTPError as exception_instance:
             if log_errors:
@@ -160,7 +133,8 @@ class BraviaRC:
                 _LOGGER.error("Exception: " + str(exception_instance))
 
         else:
-            html = json.loads(response.content.decode('utf-8'))
+            html = json.loads(response.text)
+            self._set_auth_cookie(response.cookies)
             return html
 
     def send_command(self, command):
@@ -260,13 +234,13 @@ class BraviaRC:
         self.bravia_req_json("sony/audio", self._jdata_build("setAudioVolume", {"target": "speaker",
                                                                                 "volume": api_volume}))
 
-    def _recreate_auth_cookie(self):
-        """
-        The default cookie is for URL/sony. For some commands we need it for the root path
-        """
-        cookies = requests.cookies.RequestsCookieJar()
-        cookies.set("auth", self._cookies.get("auth"))
-        return cookies
+    def _set_auth_cookie(self, cookies):
+        """Create cookiejar with root and default cookies."""
+        if self._cookies is None:
+            self._cookies = requests.cookies.RequestsCookieJar()
+            self._cookies.set('auth', cookies.get('auth'))
+            self._cookies.update(cookies)
+        return self._cookies
 
     def load_app_list(self):
         """Get the list of installed apps."""
@@ -350,7 +324,26 @@ class BraviaRC:
         """Send the previous track command."""
         self.send_req_ircc(self.get_command_code('Prev'))
 
+    def getWolMode(self):
+        """Get Wake on LAN mode."""
+        jdata = self._jdata_build('getWolMode')
+        resp = self.bravia_req_json('system', jdata)
+        result = resp.get('result',[{}])[0]
+        return result.get('enabled')
+
+    def setWolMode(self, mode):
+        """Set Wake on LAN mode. Return true if successful."""
+        jdata = self._jdata_build('setWolMode', {'enabled': mode})
+        self.bravia_req_json('system', jdata)
+
     def get_system_info(self):
         """Returns dictionary containing system information."""
-        payload = self._jdata_build("getSystemInformation", None)
-        return self.bravia_req_json('sony/system', payload)['result'][0]
+        if self._system_info:
+            return self._system_info
+        else:
+            jdata = self._jdata_build('getSystemInformation')
+            result = self.bravia_req_json('system', jdata)
+            self._system_info = result.get('result',[{}])[0]
+            self._mac = self._system_info.get('macAddr')
+            self._uid = self._system_info.get('cid')
+            return self._system_info
