@@ -192,20 +192,15 @@ class BraviaRC:
 
     def get_power_status(self):
         """Get power status: off, active, standby"""
-        return_value = 'off' # by default the TV is turned off
-        try:
-            resp = self.bravia_req_json("system", self._jdata_build("getPowerStatus"), False)
-            if resp is not None and not resp.get('error'):
-                power_data = resp.get('result')[0]
-                return_value = power_data.get('status')
-        except:  # pylint: disable=broad-except
-            pass
-        return return_value
+        jdata = self._jdata_build('getPowerStatus')
+        resp = self.bravia_req_json('system', jdata, log_errors=False)
+        power_data = resp.get('result', [{'status':'off'}])[0]
+        return power_data.get('status')
 
     def _refresh_commands(self):
         resp = self.bravia_req_json("system", self._jdata_build("getRemoteControllerInfo"))
-        if resp is not None and not resp.get('error'):
-            self._commands = resp.get('result')[1]
+        if resp.get('error') is None:
+            self._commands = resp.get('result', [None])[1]
         else:
             _LOGGER.error("JSON request error: " + json.dumps(resp, indent=4))
 
@@ -267,14 +262,13 @@ class BraviaRC:
         self._wakeonlan()
         # Try using the power on command incase the WOL doesn't work
         if self.get_power_status() != 'active':
-            command = self.get_command_code('TvPower')
-            if command is None:
-                command = 'AAAAAQAAAAEAAAAuAw=='
-            self.send_req_ircc(command)
+            jdata = self._jdata_build('setPowerStatus', {'status': True})
+            self.bravia_req_json('system', jdata, log_errors=False)
 
     def turn_off(self):
         """Turn off media player."""
-        self.send_req_ircc(self.get_command_code('PowerOff'))
+        jdata = self._jdata_build('setPowerStatus', {'status': False})
+        self.bravia_req_json('system', jdata, log_errors=False)
 
     def volume_up(self):
         """Volume up the media player."""
