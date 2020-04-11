@@ -7,7 +7,8 @@ dedicated to Isabel
 
 """
 import logging
-import base64
+from base64 import b64encode
+from collections import OrderedDict
 import json
 import socket
 import struct
@@ -27,7 +28,7 @@ class BraviaRC:
         self._mac = mac
         self._cookies = None
         self._commands = []
-        self._content_mapping = []
+        self._content_mapping = {}
         self._app_list = {}
 
     def _jdata_build(self, method, params=None):
@@ -167,27 +168,31 @@ class BraviaRC:
         self.send_req_ircc(self.get_command_code(command))
 
     def get_source(self, source):
-        """Returns list of Sources"""
-        original_content_list = []
-        content_index = 0
-        while True:
-            resp = self.bravia_req_json("sony/avContent",
-                                        self._jdata_build("getContentList", {"source": source, "stIdx": content_index}))
-
-            if not resp.get('error'):
-                if len(resp.get('result')[0]) == 0:
-                    break
-                else:
-                    content_index = resp.get('result')[0][-1]['index']+1
-                original_content_list.extend(resp.get('result')[0])
+        """Returns all channels within a given source."""
+        channels = {}
+        index = 0
+        end = 0
+        jdata = self._jdata_build('getContentCount', {'source': source})
+        resp = self.bravia_req_json('avContent', jdata)
+        end = resp.get('result', [{}])[0].get('count', 0)
+        while index < end:
+            if end-index<=50:
+                count = end-index
             else:
-                break
-        return original_content_list
+                count = 50
+            jdata = self._jdata_build('getContentList', {'source': source, 'stIdx': index, 'cnt':count})
+            resp = self.bravia_req_json('avContent', jdata)
+            for item in resp.get('result', [[]])[0]:
+                channel_title = item['title'].strip()
+                if channel_title:
+                    channels[channel_title] = item['uri']
+            index += count
+        return channels
 
     def load_source_list(self):
         """Load source list from Sony Bravia."""
-        source_list = {}
-        for scheme in ['tv', 'extInput']:
+        source_list = OrderedDict()
+        for scheme in ['extInput','tv']:
             jdata = self._jdata_build('getSourceList', {'scheme': scheme})
             resp = self.bravia_req_json('avContent', jdata)
             for source in resp.get('result', [[]])[0]:
