@@ -60,7 +60,7 @@ class BraviaRC:
         headers={'Authorization':f'Basic {b64str}',
                  'Connection':'keep-alive'}
 
-        resp = self.bravia_req_json('sony/accessControl', authorization, headers=headers)
+        resp = self.bravia_req_json('accessControl', authorization, headers=headers)
 
         if resp.get('error') is None:
             self.get_system_info()
@@ -100,7 +100,7 @@ class BraviaRC:
                 "xmlns:u=\"urn:schemas-sony-com:service:IRCC:1\"><IRCCCode>" +
                 params+"</IRCCCode></u:X_SendIRCC></s:Body></s:Envelope>").encode("UTF-8")
         try:
-            response = requests.post('http://' + self._host + '/sony/IRCC',
+            response = requests.post(f'http://{self._host}/sony/IRCC',
                                      headers=headers,
                                      cookies=self._cookies,
                                      data=data,
@@ -118,8 +118,9 @@ class BraviaRC:
 
     def bravia_req_json(self, url, params, headers=None, log_errors=True):
         """Send request command via HTTP json to Sony Bravia."""
+        return_value = {}
         try:
-            response = requests.post(f'http://{self._host}/{url}',
+            response = requests.post(f'http://{self._host}/sony/{url}',
                                      data=params,
                                      headers=headers,
                                      cookies=self._cookies,
@@ -133,9 +134,9 @@ class BraviaRC:
                 _LOGGER.error("Exception: " + str(exception_instance))
 
         else:
-            html = json.loads(response.text)
+            return_value = json.loads(response.text)
             self._set_auth_cookie(response.cookies)
-            return html
+        return return_value
 
     def send_command(self, command):
         """Sends a command to the TV."""
@@ -176,9 +177,9 @@ class BraviaRC:
 
     def get_playing_info(self):
         return_value = {}
-        resp = self.bravia_req_json("sony/avContent", self._jdata_build("getPlayingContentInfo", None))
-        if resp is not None and not resp.get('error'):
-            playing_content_data = resp.get('result')[0]
+        resp = self.bravia_req_json("avContent", self._jdata_build("getPlayingContentInfo"))
+        if resp.get('error') is None:
+            playing_content_data = resp.get('result',[{}])[0]
             return_value['programTitle'] = playing_content_data.get('programTitle')
             return_value['title'] = playing_content_data.get('title')
             return_value['programMediaType'] = playing_content_data.get('programMediaType')
@@ -193,7 +194,7 @@ class BraviaRC:
         """Get power status: off, active, standby"""
         return_value = 'off' # by default the TV is turned off
         try:
-            resp = self.bravia_req_json("sony/system", self._jdata_build("getPowerStatus", None), False)
+            resp = self.bravia_req_json("system", self._jdata_build("getPowerStatus"), False)
             if resp is not None and not resp.get('error'):
                 power_data = resp.get('result')[0]
                 return_value = power_data.get('status')
@@ -202,7 +203,7 @@ class BraviaRC:
         return return_value
 
     def _refresh_commands(self):
-        resp = self.bravia_req_json("sony/system", self._jdata_build("getRemoteControllerInfo", None))
+        resp = self.bravia_req_json("system", self._jdata_build("getRemoteControllerInfo"))
         if resp is not None and not resp.get('error'):
             self._commands = resp.get('result')[1]
         else:
@@ -218,12 +219,11 @@ class BraviaRC:
 
     def get_volume_info(self):
         """Get volume info."""
-        resp = self.bravia_req_json("sony/audio", self._jdata_build("getVolumeInformation", None))
-        if not resp.get('error'):
-            results = resp.get('result')[0]
-            for result in results:
-                if result.get('target') == 'speaker':
-                    return result
+        jdata = self._jdata_build('getVolumeInformation')
+        resp = self.bravia_req_json('audio', jdata)
+        for result in resp.get('result', [[]])[0]:
+            if result.get('target') == 'speaker':
+                return result
         else:
             _LOGGER.error("JSON request error:" + json.dumps(resp, indent=4))
         return None
@@ -231,8 +231,9 @@ class BraviaRC:
     def set_volume_level(self, volume):
         # API expects string int value within 0..100 range.
         api_volume = str(int(round(volume * 100)))
-        self.bravia_req_json("sony/audio", self._jdata_build("setAudioVolume", {"target": "speaker",
-                                                                                "volume": api_volume}))
+        params = {'target': 'speaker','volume': api_volume}
+        jdata = self._jdata_build('setAudioVolume', params)
+        self.bravia_req_json('audio', jdata)
 
     def _set_auth_cookie(self, cookies):
         """Create cookiejar with root and default cookies."""
