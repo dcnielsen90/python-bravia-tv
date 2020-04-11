@@ -8,7 +8,6 @@ dedicated to Isabel
 """
 import logging
 import base64
-import collections
 import json
 import socket
 import struct
@@ -31,7 +30,7 @@ class BraviaRC:
         self._content_mapping = []
         self._app_list = {}
 
-    def _jdata_build(self, method, params):
+    def _jdata_build(self, method, params=None):
         if params:
             ret = json.dumps({"method": method, "params": [params], "id": 1, "version": "1.0"})
         else:
@@ -145,10 +144,11 @@ class BraviaRC:
 
     def bravia_req_json(self, url, params, log_errors=True):
         """ Send request command via HTTP json to Sony Bravia."""
+        cookies = self._recreate_auth_cookie()
         try:
-            response = requests.post('http://'+self._host+'/'+url,
-                                     data=params.encode("UTF-8"),
-                                     cookies=self._cookies,
+            response = requests.post(f'http://{self._host}/{url}',
+                                     data=params,
+                                     cookies=cookies,
                                      timeout=TIMEOUT)
         except requests.exceptions.HTTPError as exception_instance:
             if log_errors:
@@ -173,6 +173,7 @@ class BraviaRC:
         while True:
             resp = self.bravia_req_json("sony/avContent",
                                         self._jdata_build("getContentList", {"source": source, "stIdx": content_index}))
+
             if not resp.get('error'):
                 if len(resp.get('result')[0]) == 0:
                     break
@@ -184,37 +185,15 @@ class BraviaRC:
         return original_content_list
 
     def load_source_list(self):
-        """ Load source list from Sony Bravia."""
-        original_content_list = []
-        resp = self.bravia_req_json("sony/avContent",
-                                    self._jdata_build("getSourceList", {"scheme": "tv"}))
-        if not resp.get('error'):
-            results = resp.get('result')[0]
-            for result in results:
-                if result['source'] in ['tv:dvbc', 'tv:dvbt', 'tv:isdbt', 'tv:isdbbs', 'tv:isdbcs']:  # tv:dvbc = via cable, tv:dvbt = via DTT, tv:isdb* = via Japanese
-                    original_content_list.extend(self.get_source(result['source']))
-
-        resp = self.bravia_req_json("sony/avContent",
-                                    self._jdata_build("getSourceList", {"scheme": "extInput"}))
-        if not resp.get('error'):
-            results = resp.get('result')[0]
-            for result in results:
-                if result['source'] in ('extInput:hdmi', 'extInput:composite', 'extInput:component'):  # physical inputs
-                    resp = self.bravia_req_json("sony/avContent",
-                                                self._jdata_build("getContentList", result))
-                    if not resp.get('error'):
-                        original_content_list.extend(resp.get('result')[0])
-        
-        resp = self.bravia_req_json("sony/appControl",
-                                    self._jdata_build("getApplicationList", None))
-        if not resp.get('error'):
-            results = resp.get('result')[0]
-            original_content_list+=results
-
-        return_value = collections.OrderedDict()
-        for content_item in original_content_list:
-            return_value[content_item['title']] = content_item['uri']
-        return return_value
+        """Load source list from Sony Bravia."""
+        source_list = {}
+        for scheme in ['tv', 'extInput']:
+            jdata = self._jdata_build('getSourceList', {'scheme': scheme})
+            resp = self.bravia_req_json('avContent', jdata)
+            for source in resp.get('result', [[]])[0]:
+                source_list.update(self.get_source(source['source']))
+        source_list.update(self.load_app_list())
+        return source_list
 
     def get_playing_info(self):
         return_value = {}
@@ -284,58 +263,24 @@ class BraviaRC:
         cookies.set("auth", self._cookies.get("auth"))
         return cookies
 
-    def load_app_list(self, log_errors=True):
-        """Get the list of installed apps"""
-        headers = {}
-        parsed_objects = {}
+    def load_app_list(self):
+        """Get the list of installed apps."""
+        self._app_list = {}
+        jdata = self._jdata_build('getApplicationList')
+        response = self.bravia_req_json('appControl', jdata)
+        for apps in response.get('result', [[]]):
+            for app in apps:
+                self._app_list[app['title']] = app['uri']
+        return self._app_list
 
-        try:
-            cookies = self._recreate_auth_cookie()
-            response = requests.get('http://' + self._host + '/DIAL/sony/applist',
-                                     cookies=cookies,
-                                     timeout=TIMEOUT)
-        except requests.exceptions.HTTPError as exception_instance:
-            if log_errors:
-                _LOGGER.error("HTTPError: " + str(exception_instance))
-
-        except Exception as exception_instance:  # pylint: disable=broad-except
-            if log_errors:
-                _LOGGER.error("Exception: " + str(exception_instance))
-        else:
-            content = response.content
-            from xml.dom import minidom
-            parsed_xml = minidom.parseString(content)
-            for obj in parsed_xml.getElementsByTagName("app"):
-                if obj.getElementsByTagName("name")[0].firstChild and obj.getElementsByTagName("id")[0].firstChild:
-                    parsed_objects[str(obj.getElementsByTagName("name")[0].firstChild.nodeValue)] = str(obj.getElementsByTagName("id")[0].firstChild.nodeValue)
-
-        return parsed_objects
-
-    def start_app(self, app_name, log_errors=True):
-        """Start an app by name"""
-        if len(self._app_list) == 0:
-            self._app_list = self.load_app_list(log_errors=log_errors)
+    def start_app(self, app_name):
+        """Start an app by name."""
+        if not self._app_list:
+            self.load_app_list()
         if app_name in self._app_list:
-            return self._start_app(self._app_list[app_name], log_errors=log_errors)
-
-    def _start_app(self, app_id, log_errors=True):
-        """Start an app by id"""
-        headers = {}
-        try:
-            cookies = self._recreate_auth_cookie()
-            response = requests.post('http://' + self._host + '/DIAL/apps/' + app_id,
-                                     cookies=cookies,
-                                     timeout=TIMEOUT)
-        except requests.exceptions.HTTPError as exception_instance:
-            if log_errors:
-                _LOGGER.error("HTTPError: " + str(exception_instance))
-
-        except Exception as exception_instance:  # pylint: disable=broad-except
-            if log_errors:
-                _LOGGER.error("Exception: " + str(exception_instance))
-        else:
-            content = response.content
-            return content
+            app_id = self._app_list[app_name]
+            jdata = self._jdata_build('setActiveApp', {'uri':f'{app_id}'})
+            self.bravia_req_json('appControl', jdata)
 
     def turn_on(self):
         """Turn the media player on."""
@@ -365,7 +310,7 @@ class BraviaRC:
 
     def select_source(self, source):
         """Set the input source."""
-        if len(self._content_mapping) == 0:
+        if not self._content_mapping:
             self._content_mapping = self.load_source_list()
         if source in self._content_mapping:
             uri = self._content_mapping[source]
@@ -373,10 +318,12 @@ class BraviaRC:
 
     def play_content(self, uri):
         """Play content by URI."""
-        if uri.startswith("com.sony.dtv"):
-            self.bravia_req_json("sony/appControl", self._jdata_build("setActiveApp", {"uri": uri}))
+        if uri in self._app_list.values():
+            jdata = self._jdata_build('setActiveApp', {'uri': uri})
+            self.bravia_req_json('appControl', jdata)
         else:
-            self.bravia_req_json("sony/avContent", self._jdata_build("setPlayContent", {"uri": uri}))
+            jdata = self._jdata_build('setPlayContent', {'uri': uri})
+            self.bravia_req_json('avContent', jdata)
 
     def media_play(self):
         """Send play command."""
