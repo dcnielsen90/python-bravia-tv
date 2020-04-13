@@ -90,7 +90,7 @@ class BraviaRC:
             socket_instance.sendto(msg, ('<broadcast>', 9))
             socket_instance.close()
 
-    def send_req_ircc(self, params, log_errors=True):
+    def send_req_ircc(self, params, log_errors=True, timeout=TIMEOUT):
         """Send an IRCC command via HTTP to Sony Bravia."""
         headers = {'SOAPACTION': '"urn:schemas-sony-com:service:IRCC:1#X_SendIRCC"'}
         data = ("<?xml version=\"1.0\"?><s:Envelope xmlns:s=\"http://schemas.xmlsoap.org" +
@@ -104,7 +104,7 @@ class BraviaRC:
                                      headers=headers,
                                      cookies=self._cookies,
                                      data=data,
-                                     timeout=TIMEOUT)
+                                     timeout=timeout)
         except requests.exceptions.HTTPError as exception_instance:
             if log_errors:
                 _LOGGER.error("HTTPError: " + str(exception_instance))
@@ -116,7 +116,7 @@ class BraviaRC:
             content = response.content
             return content
 
-    def bravia_req_json(self, url, params, headers=None, log_errors=True):
+    def bravia_req_json(self, url, params, headers=None, log_errors=True, timeout=TIMEOUT):
         """Send request command via HTTP json to Sony Bravia."""
         return_value = {}
         try:
@@ -124,7 +124,7 @@ class BraviaRC:
                                      data=params,
                                      headers=headers,
                                      cookies=self._cookies,
-                                     timeout=TIMEOUT)
+                                     timeout=timeout)
         except requests.exceptions.HTTPError as exception_instance:
             if log_errors:
                 _LOGGER.error("HTTPError: " + str(exception_instance))
@@ -195,7 +195,7 @@ class BraviaRC:
     def get_power_status(self):
         """Get power status: off, active, standby"""
         jdata = self._jdata_build('getPowerStatus')
-        resp = self.bravia_req_json('system', jdata, log_errors=False)
+        resp = self.bravia_req_json('system', jdata, log_errors=False, timeout=3)
         power_data = resp.get('result', [{'status':'off'}])[0]
         return power_data.get('status')
 
