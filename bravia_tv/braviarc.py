@@ -27,7 +27,7 @@ class BraviaRC:
         self._host = host
         self._mac = mac
         self._cookies = None
-        self._commands = []
+        self._commands = {}
         self._content_mapping = {}
         self._app_list = {}
         self._system_info = {}
@@ -140,7 +140,9 @@ class BraviaRC:
 
     def send_command(self, command):
         """Sends a command to the TV."""
-        self.send_req_ircc(self.get_command_code(command))
+        cmd = self.get_command_code(command)
+        if cmd is not None:
+            self.send_req_ircc(cmd)
 
     def get_source(self, source):
         """Returns all channels within a given source."""
@@ -198,19 +200,14 @@ class BraviaRC:
         return power_data.get('status')
 
     def _refresh_commands(self):
-        resp = self.bravia_req_json("system", self._jdata_build("getRemoteControllerInfo"))
-        if resp.get('error') is None:
-            self._commands = resp.get('result', [None])[1]
-        else:
-            _LOGGER.error("JSON request error: " + json.dumps(resp, indent=4))
+        resp = self.bravia_req_json('system', self._jdata_build('getRemoteControllerInfo'))
+        results = resp.get('result', [{}])[1]
+        self._commands = {x['name']:x['value'] for x in results}
 
     def get_command_code(self, command_name):
-        if len(self._commands) == 0:
+        if not self._commands:
             self._refresh_commands()
-        for command_data in self._commands:
-            if command_data.get('name') == command_name:
-                return command_data.get('value')
-        return None
+        return self._commands.get(command_name)
 
     def get_volume_info(self):
         """Get volume info."""
@@ -272,15 +269,15 @@ class BraviaRC:
 
     def volume_up(self):
         """Volume up the media player."""
-        self.send_req_ircc(self.get_command_code('VolumeUp'))
+        self.send_command('VolumeUp')
 
     def volume_down(self):
         """Volume down media player."""
-        self.send_req_ircc(self.get_command_code('VolumeDown'))
+        self.send_command('VolumeDown')
 
-    def mute_volume(self, mute):
+    def mute_volume(self, mute=None):
         """Send mute command."""
-        self.send_req_ircc(self.get_command_code('Mute'))
+        self.send_command('Mute')
 
     def select_source(self, source):
         """Set the input source."""
@@ -301,23 +298,23 @@ class BraviaRC:
 
     def media_play(self):
         """Send play command."""
-        self.send_req_ircc(self.get_command_code('Play'))
+        self.send_command('Play')
 
     def media_pause(self):
         """Send media pause command to media player."""
-        self.send_req_ircc(self.get_command_code('Pause'))
+        self.send_command('Pause')
 
     def media_stop(self):
         """Send media stop command to media player."""
-        self.send_req_ircc(self.get_command_code('Stop'))
+        self.send_command('Stop')
 
     def media_next_track(self):
         """Send next track command."""
-        self.send_req_ircc(self.get_command_code('Next'))
+        self.send_command('Next')
 
     def media_previous_track(self):
         """Send the previous track command."""
-        self.send_req_ircc(self.get_command_code('Prev'))
+        self.send_command('Prev')
 
     def getWolMode(self):
         """Get Wake on LAN mode."""
