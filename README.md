@@ -11,8 +11,7 @@ Installation
     # Installing from PyPI
     $ pip install bravia-tv
     # Installing latest development
-    $ pip install \
-        git+https://github.com/dcnielsen90/python-bravia-tv@master
+    $ pip install git+https://github.com/dcnielsen90/python-bravia-tv@master
 
 Initializing and Connecting
 ===========================
@@ -20,11 +19,10 @@ Initializing and Connecting
     from bravia_tv import BraviaRC
 
     ip_address = '192.178.1.2'
-    mac_address = "XX:XX:XX:XX:XX:XX"
 
-    # IP address is required. mac address is required
-    # to turn on TV
-    braviarc = BraviaRC(ip_address, mac_address)
+    # IP address is required. The active NIC's mac will be acquired dynamically
+    # if mac is left None.
+    braviarc = BraviaRC(ip_address)
 
 
     # The pin can be a pre-shared key (PSK) or you can
