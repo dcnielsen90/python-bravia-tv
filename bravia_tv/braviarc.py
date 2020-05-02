@@ -269,15 +269,25 @@ class BraviaRC:
 
     def volume_up(self):
         """Volume up the media player."""
-        self.send_command('VolumeUp')
+        params = {'target': 'speaker','volume': '+1'}
+        jdata = self._jdata_build('setAudioVolume', params)
+        self.bravia_req_json('audio', jdata)
 
     def volume_down(self):
         """Volume down media player."""
-        self.send_command('VolumeDown')
+        params = {'target': 'speaker','volume': '-1'}
+        jdata = self._jdata_build('setAudioVolume', params)
+        self.bravia_req_json('audio', jdata)
 
     def mute_volume(self, mute=None):
-        """Send mute command."""
-        self.send_command('Mute')
+        """Mute/Unmute media player."""
+        volumestate = self.get_volume_info()
+        if volumestate.get('mute') == False:
+            jdata = self._jdata_build('setAudioMute', {'status': True})
+            self.bravia_req_json('audio', jdata)
+        else:
+            jdata = self._jdata_build('setAudioMute', {'status': False})
+            self.bravia_req_json('audio', jdata)
 
     def select_source(self, source):
         """Set the input source."""
