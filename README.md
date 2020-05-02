@@ -18,7 +18,7 @@ Initializing and Connecting
 
     from bravia_tv import BraviaRC
 
-    ip_address = '192.178.1.2'
+    ip_address = '192.168.1.2'
 
     # IP address is required. The active NIC's mac will be acquired dynamically
     # if mac is left None.
