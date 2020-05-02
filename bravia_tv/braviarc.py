@@ -201,7 +201,7 @@ class BraviaRC:
 
     def _refresh_commands(self):
         resp = self.bravia_req_json('system', self._jdata_build('getRemoteControllerInfo'))
-        results = resp.get('result', [{}])[1]
+        results = resp.get('result', [{},{}])[1]
         self._commands = {x['name']:x['value'] for x in results}
 
     def get_command_code(self, command_name):
