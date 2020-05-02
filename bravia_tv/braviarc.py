@@ -209,21 +209,29 @@ class BraviaRC:
             self._refresh_commands()
         return self._commands.get(command_name)
 
-    def get_volume_info(self):
-        """Get volume info."""
+    def get_volume_info(self, audio_output='speaker'):
+        """Get volume info for specified Output."""
+        return_value = None
         jdata = self._jdata_build('getVolumeInformation')
         resp = self.bravia_req_json('audio', jdata)
-        for result in resp.get('result', [[]])[0]:
-            if result.get('target') == 'speaker':
-                return result
-        else:
-            _LOGGER.error("JSON request error:" + json.dumps(resp, indent=4))
-        return None
+        for output in resp.get('result', [{}])[0]:
+            if output.get('target') == audio_output:
+                return_value = output
+        return return_value
 
-    def set_volume_level(self, volume):
+    def get_audio_outputs(self):
+        """Get volume Outputs."""
+        return_value = set()
+        jdata = self._jdata_build('getVolumeInformation')
+        resp = self.bravia_req_json('audio', jdata)
+        for output in resp.get('result', [{}])[0]:
+            return_value.add(output.get('target'))
+        return return_value
+
+    def set_volume_level(self, volume, audio_output='speaker'):
         # API expects string int value within 0..100 range.
         api_volume = str(int(round(volume * 100)))
-        params = {'target': 'speaker','volume': api_volume}
+        params = {'target': audio_output,'volume': api_volume}
         jdata = self._jdata_build('setAudioVolume', params)
         self.bravia_req_json('audio', jdata)
 
