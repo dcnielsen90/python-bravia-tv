@@ -62,7 +62,7 @@ class BraviaRC:
 
         resp = self.bravia_req_json('accessControl', authorization, headers=headers)
 
-        if resp.get('error') is None:
+        if resp and resp.get('error') is None:
             self.get_system_info()
             if not self.getWolMode():
                 self.setWolMode(True)
