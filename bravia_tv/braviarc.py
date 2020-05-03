@@ -275,15 +275,15 @@ class BraviaRC:
         jdata = self._jdata_build('setPowerStatus', {'status': False})
         self.bravia_req_json('system', jdata, log_errors=False)
 
-    def volume_up(self):
+    def volume_up(self, audio_output='speaker'):
         """Volume up the media player."""
-        params = {'target': 'speaker','volume': '+1'}
+        params = {'target': audio_output,'volume': '+1'}
         jdata = self._jdata_build('setAudioVolume', params)
         self.bravia_req_json('audio', jdata)
 
-    def volume_down(self):
+    def volume_down(self, audio_output='speaker'):
         """Volume down media player."""
-        params = {'target': 'speaker','volume': '-1'}
+        params = {'target': audio_output,'volume': '-1'}
         jdata = self._jdata_build('setAudioVolume', params)
         self.bravia_req_json('audio', jdata)
 
