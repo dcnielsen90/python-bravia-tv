@@ -87,7 +87,8 @@ class BraviaRC:
             msg = b'\xff' * 6 + hw_addr * 16
             socket_instance = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
             socket_instance.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
-            socket_instance.sendto(msg, ('<broadcast>', 9))
+            for _ in range(5):
+                socket_instance.sendto(msg, ('<broadcast>', 9))
             socket_instance.close()
 
     def send_req_ircc(self, params, log_errors=True, timeout=TIMEOUT):
@@ -269,6 +270,10 @@ class BraviaRC:
         self._wakeonlan()
         # Try using the power on command incase the WOL doesn't work
         if self.get_power_status() != 'active':
+            command = self.get_command_code('TvPower')
+            if command is None:
+                command = 'AAAAAQAAAAEAAAAuAw=='
+            self.send_req_ircc(command)
             jdata = self._jdata_build('setPowerStatus', {'status': True})
             self.bravia_req_json('system', jdata, log_errors=False)
 
