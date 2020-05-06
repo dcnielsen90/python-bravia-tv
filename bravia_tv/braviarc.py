@@ -216,7 +216,9 @@ class BraviaRC:
         resp = self.bravia_req_json('audio', jdata)
         for output in resp.get('result', [{}])[0]:
             if output.get('target') == audio_output:
-                return_value = output
+                return output
+            else:
+                return_value = {}
         return return_value
 
     def get_audio_outputs(self):
