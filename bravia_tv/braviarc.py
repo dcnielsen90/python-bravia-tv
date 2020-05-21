@@ -126,6 +126,8 @@ class BraviaRC:
                                      headers=headers,
                                      cookies=self._cookies,
                                      timeout=timeout)
+            if response.status_code == 404:
+                raise NoIPControl("IP Control not enabled or not supported")
         except requests.exceptions.HTTPError as exception_instance:
             if log_errors:
                 _LOGGER.error("HTTPError: " + str(exception_instance))
@@ -364,3 +366,12 @@ class BraviaRC:
             self._mac = self._system_info.get('macAddr')
             self._uid = self._system_info.get('cid')
             return self._system_info
+
+
+class NoIPControl(Exception):
+    """Raised when IP Control is not enabled/not supported."""
+
+    def __init__(self, status):
+        """Initialize."""
+        super(NoIPControl, self).__init__(status)
+        self.status = status
