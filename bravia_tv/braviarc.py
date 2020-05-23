@@ -127,7 +127,7 @@ class BraviaRC:
                                      cookies=self._cookies,
                                      timeout=timeout)
             if response.status_code == 404:
-                raise NoIPControl("IP Control not enabled or TV not supported")
+                raise NoIPControl("IP Control not enabled or TV is not supported")
         except requests.exceptions.HTTPError as exception_instance:
             if log_errors:
                 _LOGGER.error("HTTPError: " + str(exception_instance))
@@ -369,7 +369,7 @@ class BraviaRC:
 
 
 class NoIPControl(Exception):
-    """Raised when IP Control is not enabled/not supported."""
+    """Raised when IP Control is not enabled/TV is not supported."""
 
     def __init__(self, status):
         """Initialize."""
