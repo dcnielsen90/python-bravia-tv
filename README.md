@@ -1,7 +1,7 @@
 Python Bravia TV
 =====================
 
-Python Bravia TV is a Python library to perform remote communication via http protocol with Sony Bravia TVs 2013 and newer: [list of tvs](http://info.tvsideview.sony.net/en_ww/home_device.html#bravia). For more information on the api used in this library, refer to [BRAVIA Professional Display Knowledge Center](https://pro-bravia.sony.net/develop/index.html)
+Python Bravia TV is a Python library to perform remote communication via http protocol with Sony Bravia TVs 2013 and newer. For more information on the api used in this library, refer to [BRAVIA Professional Display Knowledge Center](https://pro-bravia.sony.net/develop/index.html)
 
 This library was forked from [BraviaRC](https://github.com/aparraga/braviarc) and is primarily being developed with the intent of supporting [home-assistant](https://github.com/home-assistant/home-assistant)
 
