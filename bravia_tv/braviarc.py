@@ -70,10 +70,10 @@ class BraviaRC:
         return False
 
     def is_connected(self):
-        if self._cookies is None:
-            return False
-        else:
+        """Return True if functions requiring authentication work."""
+        if self.get_power_status() != 'off' and self.get_system_info():
             return True
+        return False
 
     def _wakeonlan(self):
         if self._mac is not None:
