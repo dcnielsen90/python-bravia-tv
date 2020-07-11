@@ -42,6 +42,9 @@ class BraviaRC:
 
     def connect(self, pin, clientid, nickname):
         """Connect to TV and get authentication cookie."""
+        if self.get_power_status() == 'off':
+            return False
+
         self._cookies = None
 
         authorization = json.dumps(
@@ -270,8 +273,7 @@ class BraviaRC:
     def turn_on(self):
         """Turn the media player on."""
         self._wakeonlan()
-        # Try using the power on command incase the WOL doesn't work
-        if self.get_power_status() != 'active':
+        if self.get_power_status() == 'standby':
             command = self.get_command_code('TvPower')
             if command is None:
                 command = 'AAAAAQAAAAEAAAAuAw=='
