@@ -103,22 +103,7 @@ class BraviaRC:
                 "<u:X_SendIRCC " +
                 "xmlns:u=\"urn:schemas-sony-com:service:IRCC:1\"><IRCCCode>" +
                 params+"</IRCCCode></u:X_SendIRCC></s:Body></s:Envelope>").encode("UTF-8")
-        try:
-            response = requests.post(f'http://{self._host}/sony/IRCC',
-                                     headers=headers,
-                                     cookies=self._cookies,
-                                     data=data,
-                                     timeout=timeout)
-        except requests.exceptions.HTTPError as exception_instance:
-            if log_errors:
-                _LOGGER.error("HTTPError: " + str(exception_instance))
-
-        except Exception as exception_instance:  # pylint: disable=broad-except
-            if log_errors:
-                _LOGGER.error("Exception: " + str(exception_instance))
-        else:
-            content = response.content
-            return content
+        self.bravia_req_json('IRCC', data, headers, log_errors, timeout)
 
     def bravia_req_json(self, url, params, headers=None, log_errors=True, timeout=TIMEOUT):
         """Send request command via HTTP json to Sony Bravia."""
@@ -140,7 +125,10 @@ class BraviaRC:
                 _LOGGER.error("Exception: " + str(exception_instance))
 
         else:
-            return_value = json.loads(response.text)
+            if url != 'IRCC':
+                return_value = json.loads(response.content)
+            else:
+                return_value = response.content
             self._set_auth_cookie(response.cookies)
         return return_value
 
