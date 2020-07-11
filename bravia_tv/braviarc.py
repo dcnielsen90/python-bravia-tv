@@ -74,7 +74,7 @@ class BraviaRC:
 
     def is_connected(self):
         """Return True if functions requiring authentication work."""
-        if self.get_power_status() != 'off' and self.get_system_info():
+        if self.get_power_status() != 'off' and self.setWolMode(True):
             return True
         return False
 
@@ -355,7 +355,7 @@ class BraviaRC:
     def setWolMode(self, mode):
         """Set Wake on LAN mode. Return true if successful."""
         jdata = self._jdata_build('setWolMode', {'enabled': mode})
-        self.bravia_req_json('system', jdata)
+        return 'result' in self.bravia_req_json('system', jdata)
 
     def get_system_info(self):
         """Returns dictionary containing system information."""
