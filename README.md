@@ -15,54 +15,58 @@ Installation
 
 Initializing and Connecting
 ===========================
+```python
+from bravia_tv import BraviaRC
 
-    from bravia_tv import BraviaRC
+ip_address = '192.168.1.2'
+mac_address = 'XX:XX:XX:XX:XX:XX'
+subnet_mask = '255.255.255.0'
 
-    ip_address = '192.168.1.2'
+# IP address is required.
+# MAC address can be found dynamically and therefore does not need to be specified. It is useful to specify mac address when a bravia instance is created when the TV is in the OFF state.
+# Subnet Mask is only required when the TV and the device you are running your script from are on different subnets. Without specifying subnet mask, the wake on lan packet will only broadcast over the the local subnet.
+braviarc = BraviaRC(ip_address, mac_address, subnet_mask)
 
-    # IP address is required. The active NIC's mac will be acquired dynamically
-    # if mac is left None.
-    braviarc = BraviaRC(ip_address)
 
+# The pin can be a pre-shared key (PSK) or you can
+# receive a pin from the tv by making the pin 0000
+pin = '1878'
 
-    # The pin can be a pre-shared key (PSK) or you can
-    # receive a pin from the tv by making the pin 0000
-    pin = '1878'
-
-    # Connect to TV
-    braviarc.connect(pin, 'my_device_id', 'my device name')
-
+# Connect to TV
+braviarc.connect(pin, 'my_device_id', 'my device name')
+```
 Command Examples
 ================
+```python
+# Check connection
+if braviarc.is_connected():
 
-    # Check connection
-    if braviarc.is_connected():
+    # Get power status
+    power_status = braviarc.get_power_status()
+    print (power_status)
 
-        # Get power status
-        power_status = braviarc.get_power_status()
-        print (power_status)
+    # Get playing info
+    playing_content = braviarc.get_playing_info()
 
-        # Get playing info
-        playing_content = braviarc.get_playing_info()
+    # Print current playing channel
+    print (playing_content.get('title'))
 
-        # Print current playing channel
-        print (playing_content.get('title'))
+    # Get volume info
+    volume_info = braviarc.get_volume_info()
 
-        # Get volume info
-        volume_info = braviarc.get_volume_info()
+    # Print current volume
+    print (volume_info.get('volume'))
 
-        # Print current volume
-        print (volume_info.get('volume'))
-
-        # Change channel
-        braviarc.play_content(uri)
+    # Change channel
+    braviarc.play_content(uri)
   
-        # Get app list
-        app_info = braviarc.load_app_list()
-        print (app_info)
+    # Get app list
+    app_info = braviarc.load_app_list()
+    print (app_info)
   
-        # Start a given app
-        braviarc.start_app("Netflix")
+    # Start a given app
+    braviarc.start_app("Netflix")
 
-        # Turn off the TV
-        braviarc.turn_off()
+    # Turn off the TV
+    braviarc.turn_off()
+```

@@ -13,6 +13,7 @@ import json
 import socket
 import struct
 import requests
+import ipaddress
 
 TIMEOUT = 10
 
@@ -21,11 +22,12 @@ _LOGGER = logging.getLogger(__name__)
 
 class BraviaRC:
 
-    def __init__(self, host, mac=None):
+    def __init__(self, host, mac=None, subnet_mask=None):
         """Initialize the Sony Bravia RC class."""
 
         self._host = host
         self._mac = mac
+        self._subnetmask = subnet_mask
         self._cookies = None
         self._commands = {}
         self._content_mapping = {}
@@ -80,6 +82,11 @@ class BraviaRC:
 
     def _wakeonlan(self):
         if self._mac is not None:
+            broadcast = '<broadcast>'
+            if self._subnetmask is not None:
+                host = ipaddress.IPv4Address(self._host)
+                net = ipaddress.IPv4Network(f'{self._host}/{self._subnetmask}', False)
+                broadcast = str(net.broadcast_address)
             addr_byte = self._mac.split(':')
             hw_addr = struct.pack('BBBBBB', int(addr_byte[0], 16),
                                   int(addr_byte[1], 16),
@@ -91,7 +98,8 @@ class BraviaRC:
             socket_instance = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
             socket_instance.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
             for _ in range(5):
-                socket_instance.sendto(msg, ('<broadcast>', 9))
+                print(broadcast)
+                socket_instance.sendto(msg, (broadcast, 9))
             socket_instance.close()
 
     def send_req_ircc(self, params, log_errors=True, timeout=TIMEOUT):
