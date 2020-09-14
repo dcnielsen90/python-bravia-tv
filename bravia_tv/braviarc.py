@@ -29,6 +29,7 @@ class BraviaRC:
         self._cookies = None
         self._commands = {}
         self._content_mapping = {}
+        self._video_mode_mapping = {}
         self._app_list = {}
         self._system_info = {}
         self._uid = None
@@ -266,6 +267,31 @@ class BraviaRC:
             app_id = self._app_list[app_name]
             jdata = self._jdata_build('setActiveApp', {'uri':f'{app_id}'})
             self.bravia_req_json('appControl', jdata)
+
+    def load_scene_list(self):
+        """Get the list of available scenes (video modes)."""
+        self._video_mode_mapping = {}
+        jdata = self._jdata_build('getSceneSetting')
+        response = self.bravia_req_json('videoScreen', jdata)
+        for scene in response.get('result', [{'candidate':[]}])[0].get('candidate', []):
+            self._video_mode_mapping[scene['value'].capitalize()] = scene['value']
+        return self._video_mode_mapping
+
+    def get_current_scene(self):
+        """Get current scene (video mode)."""
+        jdata = self._jdata_build('getSceneSetting')
+        response = self.bravia_req_json('videoScreen', jdata)
+        current_scene = response.get('result', [{'currentValue':'none'}])[0]
+        return current_scene.get('currentValue')
+
+    def set_scene(self, scene_name):
+        """Set scene (video mode)."""
+        if not self._video_mode_mapping:
+            self.load_scene_list()
+        if scene_name in self._video_mode_mapping:
+            scene_id = self._video_mode_mapping[scene_name]
+            jdata = self._jdata_build('setSceneSetting', {'value':f'{scene_id}'})
+            self.bravia_req_json('videoScreen', jdata)
 
     def turn_on(self):
         """Turn the media player on."""

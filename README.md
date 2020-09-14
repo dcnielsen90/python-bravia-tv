@@ -64,5 +64,16 @@ Command Examples
         # Start a given app
         braviarc.start_app("Netflix")
 
+        # Get scenes (video modes)
+        scenes = braviarc.load_scene_list()
+        print (scenes)
+
+        # Get current scene (video mode)
+        current_scene = braviarc.get_current_scene()
+        print (current_scene)
+
+        # Set scene (video mode) to 'Cinema'
+        braviarc.set_scene('Cinema')
+
         # Turn off the TV
         braviarc.turn_off()
