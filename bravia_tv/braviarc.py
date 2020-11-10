@@ -138,7 +138,7 @@ class BraviaRC:
                 _LOGGER.error("Exception: " + str(exception_instance))
 
         else:
-            return_value = json.loads(response.text)
+            return_value = json.loads(response.content.decode('utf-8'))
             self._set_auth_cookie(response.cookies)
         return return_value
 
