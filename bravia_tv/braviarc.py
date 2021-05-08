@@ -27,6 +27,9 @@ class BraviaRC:
         self._host = host
         self._mac = mac
         self._cookies = None
+        self._pin = None
+        self._clientid = None
+        self._nickname = None
         self._commands = {}
         self._content_mapping = {}
         self._video_mode_mapping = {}
@@ -44,6 +47,9 @@ class BraviaRC:
     def connect(self, pin, clientid, nickname):
         """Connect to TV and get authentication cookie."""
         self._cookies = None
+        self._pin = pin
+        self._clientid = clientid
+        self._nickname = nickname
 
         authorization = json.dumps(
             {'method': 'actRegister',
@@ -61,7 +67,18 @@ class BraviaRC:
         headers={'Authorization':f'Basic {b64str}',
                  'Connection':'keep-alive'}
 
-        resp = self.bravia_req_json('accessControl', authorization, headers=headers)
+        try:
+            response = requests.post(f'http://{self._host}/sony/accessControl',
+                                     data=authorization,
+                                     headers=headers,
+                                     timeout=TIMEOUT)
+            if response.status_code == 404:
+                raise NoIPControl("IP Control is not enabled or TV is not supported")
+            resp = json.loads(response.content.decode('utf-8'))
+            self._set_auth_cookie(response.cookies)
+        except Exception as exception_instance:
+            if log_errors:
+                _LOGGER.error("Exception: " + str(exception_instance))
 
         if resp and resp.get('error') is None:
             self.get_system_info()
@@ -101,22 +118,7 @@ class BraviaRC:
                 "<u:X_SendIRCC " +
                 "xmlns:u=\"urn:schemas-sony-com:service:IRCC:1\"><IRCCCode>" +
                 params+"</IRCCCode></u:X_SendIRCC></s:Body></s:Envelope>").encode("UTF-8")
-        try:
-            response = requests.post(f'http://{self._host}/sony/IRCC',
-                                     headers=headers,
-                                     cookies=self._cookies,
-                                     data=data,
-                                     timeout=timeout)
-        except requests.exceptions.HTTPError as exception_instance:
-            if log_errors:
-                _LOGGER.error("HTTPError: " + str(exception_instance))
-
-        except Exception as exception_instance:  # pylint: disable=broad-except
-            if log_errors:
-                _LOGGER.error("Exception: " + str(exception_instance))
-        else:
-            content = response.content
-            return content
+        return self.bravia_req_json(url='IRCC',params=data,headers=headers,log_errors=log_errors, timeout=timeout)
 
     def bravia_req_json(self, url, params, headers=None, log_errors=True, timeout=TIMEOUT):
         """Send request command via HTTP json to Sony Bravia."""
@@ -127,19 +129,16 @@ class BraviaRC:
                                      headers=headers,
                                      cookies=self._cookies,
                                      timeout=timeout)
+            if response.status_code == 403:
+                self._set_auth_cookie(response.cookies)
+                self.connect(self._pin, self._clientid, self._nickname)
             if response.status_code == 404:
                 raise NoIPControl("IP Control is not enabled or TV is not supported")
-        except requests.exceptions.HTTPError as exception_instance:
-            if log_errors:
-                _LOGGER.error("HTTPError: " + str(exception_instance))
-
-        except Exception as exception_instance:  # pylint: disable=broad-except
-            if log_errors:
-                _LOGGER.error("Exception: " + str(exception_instance))
-
-        else:
             return_value = json.loads(response.content.decode('utf-8'))
             self._set_auth_cookie(response.cookies)
+        except Exception as exception_instance:
+            if log_errors:
+                _LOGGER.error("Exception: " + str(exception_instance))
         return return_value
 
     def send_command(self, command):
