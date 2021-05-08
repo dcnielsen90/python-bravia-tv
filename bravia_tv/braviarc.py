@@ -213,16 +213,26 @@ class BraviaRC:
             self._refresh_commands()
         return self._commands.get(command_name)
 
-    def get_volume_info(self, audio_output='speaker'):
-        """Get volume info for specified Output."""
-        return_value = None
+    def get_volume_info(self, audio_output=None):
+        """
+           Get volume info for specified Output.
+           If not specified -- returns speakers if found else returns last output found
+           If no outputs are found, return empty dict
+        """
+
         jdata = self._jdata_build('getVolumeInformation')
         resp = self.bravia_req_json('audio', jdata)
+
+        return_value = {}
         for output in resp.get('result', [{}])[0]:
-            if output.get('target') == audio_output:
-                return output
-            else:
-                return_value = {}
+            return_value = output
+            if audio_output is None:
+                if "speaker" in output.get('target'):
+                    break
+                else:
+                    continue
+            if audio_output in output.get('target'):
+                break
         return return_value
 
     def get_audio_outputs(self):
@@ -234,8 +244,10 @@ class BraviaRC:
             return_value.add(output.get('target'))
         return return_value
 
-    def set_volume_level(self, volume, audio_output='speaker'):
+    def set_volume_level(self, volume, audio_output=None):
         # API expects string int value within 0..100 range.
+        if audio_output is None:
+            audio_output = 'speaker'
         api_volume = str(int(round(volume * 100)))
         params = {'target': audio_output,'volume': api_volume}
         jdata = self._jdata_build('setAudioVolume', params)
@@ -310,14 +322,18 @@ class BraviaRC:
         jdata = self._jdata_build('setPowerStatus', {'status': False})
         self.bravia_req_json('system', jdata, log_errors=False)
 
-    def volume_up(self, audio_output='speaker'):
+    def volume_up(self, audio_output=None):
         """Volume up the media player."""
+        if audio_output is None:
+            audio_output = 'speaker'
         params = {'target': audio_output,'volume': '+1'}
         jdata = self._jdata_build('setAudioVolume', params)
         self.bravia_req_json('audio', jdata)
 
-    def volume_down(self, audio_output='speaker'):
+    def volume_down(self, audio_output=None):
         """Volume down media player."""
+        if audio_output is None:
+            audio_output = 'speaker'
         params = {'target': audio_output,'volume': '-1'}
         jdata = self._jdata_build('setAudioVolume', params)
         self.bravia_req_json('audio', jdata)
