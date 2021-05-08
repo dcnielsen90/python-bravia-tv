@@ -72,7 +72,7 @@ class BraviaRC:
 
     def is_connected(self):
         """Return True if functions requiring authentication work."""
-        if self.get_power_status() != 'off' and self.get_system_info():
+        if self.get_power_status() != 'off' and self._force_system_info():
             return True
         return False
 
@@ -397,14 +397,17 @@ class BraviaRC:
         jdata = self._jdata_build('setWolMode', {'enabled': mode})
         self.bravia_req_json('system', jdata)
 
+    def _force_system_info(self):
+        jdata = self._jdata_build('getSystemInformation')
+        result = self.bravia_req_json('system', jdata)
+        return result.get('result',[{}])[0]
+
     def get_system_info(self):
         """Returns dictionary containing system information."""
         if self._system_info:
             return self._system_info
         else:
-            jdata = self._jdata_build('getSystemInformation')
-            result = self.bravia_req_json('system', jdata)
-            self._system_info = result.get('result',[{}])[0]
+            self._system_info = self._force_system_info()
             self._mac = self._system_info.get('macAddr')
             self._uid = self._system_info.get('cid')
             return self._system_info
