@@ -66,7 +66,7 @@ class BraviaRC:
 
         headers={'Authorization':f'Basic {b64str}',
                  'Connection':'keep-alive'}
-
+        resp={}
         try:
             response = requests.post(f'http://{self._host}/sony/accessControl',
                                      data=authorization,
