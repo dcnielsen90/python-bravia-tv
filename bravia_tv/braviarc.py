@@ -200,7 +200,7 @@ class BraviaRC:
         return power_data.get('status')
 
     def _refresh_commands(self):
-        resp = self.bravia_req_json('system', self._jdata_build('getRemoteControllerInfo'))
+        resp = self.bravia_req_json('system', self._jdata_build('getRemoteControllerInfo'), log_errors=False)
         results = resp.get('result', [{},{}])[1]
         self._commands = {x['name']:x['value'] for x in results}
 
@@ -301,7 +301,7 @@ class BraviaRC:
             command = self.get_command_code('TvPower')
             if command is None:
                 command = 'AAAAAQAAAAEAAAAuAw=='
-            self.send_req_ircc(command)
+            self.send_req_ircc(command, log_errors=False)
             jdata = self._jdata_build('setPowerStatus', {'status': True})
             self.bravia_req_json('system', jdata, log_errors=False)
 
