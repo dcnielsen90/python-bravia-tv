@@ -1,6 +1,6 @@
 __author__ = 'Antonio Párraga Navarro'
 __license__ = "MIT"
-__version__ = "1.0.10"
+__version__ = "1.0.11"
 __maintainer__ = "David Nielsen"
 __email__ = "dcnielsen90@gmail.com"
 
