@@ -26,7 +26,7 @@ class BraviaRC:
 
         self._host = host
         self._mac = mac
-        self._cookies = None
+        self._session = requests.Session()
         self._commands = {}
         self._content_mapping = {}
         self._video_mode_mapping = {}
@@ -42,8 +42,7 @@ class BraviaRC:
         return ret
 
     def connect(self, pin, clientid, nickname):
-        """Connect to TV and get authentication cookie."""
-        self._cookies = None
+        """Connect to TV."""
 
         authorization = json.dumps(
             {'method': 'actRegister',
@@ -102,9 +101,8 @@ class BraviaRC:
                 "xmlns:u=\"urn:schemas-sony-com:service:IRCC:1\"><IRCCCode>" +
                 params+"</IRCCCode></u:X_SendIRCC></s:Body></s:Envelope>").encode("UTF-8")
         try:
-            response = requests.post(f'http://{self._host}/sony/IRCC',
+            response = self._session.post(f'http://{self._host}/sony/IRCC',
                                      headers=headers,
-                                     cookies=self._cookies,
                                      data=data,
                                      timeout=timeout)
         except requests.exceptions.HTTPError as exception_instance:
@@ -122,10 +120,9 @@ class BraviaRC:
         """Send request command via HTTP json to Sony Bravia."""
         return_value = {}
         try:
-            response = requests.post(f'http://{self._host}/sony/{url}',
+            response = self._session.post(f'http://{self._host}/sony/{url}',
                                      data=params,
                                      headers=headers,
-                                     cookies=self._cookies,
                                      timeout=timeout)
             if response.status_code == 404:
                 raise NoIPControl("IP Control is not enabled or TV is not supported")
@@ -139,7 +136,6 @@ class BraviaRC:
 
         else:
             return_value = json.loads(response.content.decode('utf-8'))
-            self._set_auth_cookie(response.cookies)
         return return_value
 
     def send_command(self, command):
@@ -252,14 +248,6 @@ class BraviaRC:
         params = {'target': audio_output,'volume': api_volume}
         jdata = self._jdata_build('setAudioVolume', params)
         self.bravia_req_json('audio', jdata)
-
-    def _set_auth_cookie(self, cookies):
-        """Create cookiejar with root and default cookies."""
-        if self._cookies is None:
-            self._cookies = requests.cookies.RequestsCookieJar()
-            self._cookies.set('auth', cookies.get('auth'))
-            self._cookies.update(cookies)
-        return self._cookies
 
     def load_app_list(self):
         """Get the list of installed apps."""
