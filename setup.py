@@ -16,6 +16,7 @@ setuptools.setup(
     maintainer=MAINTAINER,
     maintainer_email=MAINTAINER_EMAIL,
     description="Python Bravia TV remote control",
+    license="MIT",
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/dcnielsen90/python-bravia-tv.git",
