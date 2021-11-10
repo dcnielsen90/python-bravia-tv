@@ -9,6 +9,7 @@ dedicated to Isabel
 import logging
 from base64 import b64encode
 from collections import OrderedDict
+from datetime import datetime, timedelta
 import json
 import socket
 import struct
@@ -33,6 +34,7 @@ class BraviaRC:
         self._app_list = {}
         self._system_info = {}
         self._uid = None
+        self._last_send_time = None
 
     def _jdata_build(self, method, params=None):
         if params:
@@ -93,6 +95,17 @@ class BraviaRC:
 
     def send_req_ircc(self, params, log_errors=True, timeout=TIMEOUT):
         """Send an IRCC command via HTTP to Sony Bravia."""
+
+        # After about 13 minutes of inactivity, the TV ignores the first command
+        # without giving an error. Therefore, send an empty request before.
+        if params != "":
+            current_time = datetime.now()
+            if self._last_send_time is None or (
+                current_time - self._last_send_time
+            ) > timedelta(minutes=10):
+                self.send_req_ircc("", False)
+            self._last_send_time = current_time
+
         headers = {'SOAPACTION': '"urn:schemas-sony-com:service:IRCC:1#X_SendIRCC"'}
         data = ("<?xml version=\"1.0\"?><s:Envelope xmlns:s=\"http://schemas.xmlsoap.org" +
                 "/soap/envelope/\" " +
